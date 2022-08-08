@@ -134,3 +134,5 @@ package-lock.json
 
 # mysql workbench backup file/temp file
 *.mwb.bak
+
+*.vscode
