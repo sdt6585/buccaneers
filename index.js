@@ -33,7 +33,7 @@ app.use(session({
   saveUninitialized: false, // don't create session until something stored
   secret: '14onpr2c124301f39oijf390f39j0f34u1h9iu149831h8913',
   cookie: { 
-    //secure: true 
+    secure: process.env.secure_cookies === 1
   }
 }));
 
@@ -95,7 +95,6 @@ app.get('/api/user/campaigns', getCampaigns);
 
 async function getCampaigns (req, res) {
   try { 
-    console.log(req.params.user_id || req.session.passport.user.user_id);
     const connection = pool.promise();
 
     let results = await connection.query(`

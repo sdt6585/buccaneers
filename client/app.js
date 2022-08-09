@@ -15,7 +15,6 @@
 
   /********************************************************************************* Utility function for getting route parameters */
   function getRouteParams() {
-    
     //Grab any parameters passed in the route
     let params = {},
       paramParts = window.location.hash.split('/')
@@ -32,6 +31,7 @@
   /********************************************************************************* Initialize the Router */
   const route = Rlite(notFound, {
     '': showHome(),
+    'not_authorized': showNotAuthorized,
     'campaigns': showCampaigns,
     'campaign': showCampaign,
     'magic_link': magicLinkLogin
@@ -39,6 +39,10 @@
 
   function notFound() {
     document.body.innerHTML = '<h1>404 Not found :/</h1>';
+  }
+
+  function showNotAuthorized() {
+    document.body.innerHTML = '<h1>Not authorized, you must login or recieve a login link :/</h1>';
   }
 
   // Hash-based routing
@@ -63,9 +67,13 @@
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({username: 'MagicLink!!!!!!!!!!!!!!!!!!!!!', password: params.magic_link})
+        body: JSON.stringify({
+          username: 'MagicLink!!!!!!!!!!!!!!!!!!!!!', 
+          password: params.magic_link
+        })
       })).json();
 
+      //Navigate to that user's campaign list
       location.hash = 'campaigns';
     } catch (e) {
       notFound();
@@ -75,7 +83,6 @@
   /********************************************************************************* Show Campaigns */
 
   async function showHome () {
-
     document.body.innerHTML =  '<h1>Buccaneers Booty</h1>';  
     document.body.innerHTML += '<p>To use this tool you must receive an invitation from a game master.  Check back later to check for details on a public beta test of the tool</p>';  
   }
@@ -85,10 +92,10 @@
   async function showCampaigns () {
     let params = getRouteParams();
 
-    let request = await fetch(`./api/user/campaigns`);
-    let response = await request.json();
+    let response =  await(await fetch(`./api/user/campaigns`)).json();
 
     if (response.success) {
+
       document.body.innerHTML = '';
 
       for (let campaign of response.data) {
