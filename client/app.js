@@ -1,18 +1,72 @@
 //Just a wrapper function to allow us to use async/await
 (async function () {
+/********************************************************************************* Global uncaught error handler */
+window.onerror = function(msg, url, linenumber) {
+  alert('Unhandled Error: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber);
+  return true;
+}
+window.onunhandledrejection = function(e) {
+  alert('Unhandled Error: ' + e.reason + ' stack: ' + e.reason.stack);
+  return true;
+}
+
+
   /*********************************************************************************Setup App - Shared variables and an object for sharing when we grow beyond one javascript page */
-  let app = {};
+  let app = {
+    getJSON: getJSON,
+    getHTML: getHTML
+  };
+
+  let testHTML = await getHTML('modules/campaign/campaign.html');
+  document.body.innerHTML = "";
+  document.body.appendChild(testHTML.el);
+
 
   //Check if we're logged in if we're not on a login path or the home page
   if (window.location.hash.split('/')[0] !== '#magic_link' && window.location.hash !== '#') {
     //Grab the user
     try {
-      app.user = (await (await fetch(`./api/user`)).json()).data[0];
+      app.user = (await getJSON(`./api/user`))[0];
     } catch (e) {
       window.location.hash = 'not-authorized';
     }    
   }
 
+  /********************************************************************************* Utility function for getting a script */
+  
+  /********************************************************************************* Utility function for getting JSON */
+  async function getJSON(route, options = {}) {
+    //Set content headers
+    options.headers = options.headers || {};
+    options.headers.Accept = 'application/json';
+    options.headers['Content-Type'] = 'application/json';
+    
+    //Stringify the body if it's an object
+    if (options.body && typeof options.body === 'object') {
+      options.body = JSON.stringify(options.body);
+    }
+    
+    //Get the results
+    let results = await fetch (route, options);
+    results = await results.json();
+
+    //Make sure there wasn't an error
+    if (results.success) {
+      return results.data;
+    } else {
+      throw new Error(results.message);
+    }
+  }
+
+  /********************************************************************************* Utility function for getting HTML as a detached dom */
+  async function getHTML(route) {
+    let html = await (await fetch(`./${route}`)).text()
+    let detachedDom = document.implementation.createHTMLDocument()
+    detachedDom.body.innerHTML = html
+    detachedDom.el = detachedDom.body.firstChild;
+    return detachedDom;
+  }
+  
   /********************************************************************************* Utility function for getting route parameters */
   function getRouteParams() {
     //Grab any parameters passed in the route
@@ -28,12 +82,13 @@
 
     return params;
   }
+
   /********************************************************************************* Initialize the Router */
   const route = Rlite(notFound, {
     '': showHome(),
     'not_authorized': showNotAuthorized,
     'campaigns': showCampaigns,
-    'campaign': showCampaign,
+    'campaign': showModule,
     'magic_link': magicLinkLogin
   });
 
@@ -45,12 +100,19 @@
     document.body.innerHTML = '<h1>Not authorized, you must login or recieve a login link :/</h1>';
   }
 
-  // Hash-based routing
+  async function showModule(params, module, url) {
+    params = getRouteParams();
+
+    console.log(arg);
+    //Load the primary javascript file in the route
+  }
+
+  // Enable Hash-based routing events
   function processHash() {
     const hash = location.hash || '#';
 
     // Route based on the first route part
-    route(hash.split('/')[0].slice(1));
+    route(hash.split('/')[0].slice(1), hash.split('/')[0].slice(1));
   }
 
   window.addEventListener('hashchange', processHash);
@@ -61,17 +123,13 @@
     try {
       let params = getRouteParams();
 
-      app.user = await (await fetch(`./api/login`, {
+      app.user = await getJSON('./api/login', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        body: {
           username: 'MagicLink!!!!!!!!!!!!!!!!!!!!!', 
           password: params.magic_link
-        })
-      })).json();
+        }
+      });
 
       //Navigate to that user's campaign list
       location.hash = 'campaigns';
@@ -92,20 +150,13 @@
   async function showCampaigns () {
     let params = getRouteParams();
 
-    let response =  await(await fetch(`./api/user/campaigns`)).json();
+    let campaigns =  await getJSON(`./api/user/campaigns`)
 
-    if (response.success) {
+    document.body.innerHTML = '';
 
-      document.body.innerHTML = '';
-
-      for (let campaign of response.data) {
-        document.body.innerHTML += `<a href='#campaign/campaign_id/${campaign.campaign_id}'>${campaign.name}</a><br/>`;
-      } 
-
-    } else {
-      document.body.innerHTML = `There was an error :-(<br/>${response.message}`;
-    }
-    
+    for (let campaign of campaigns) {
+      document.body.innerHTML += `<a href='#campaign/campaign_id/${campaign.campaign_id}'>${campaign.name}</a><br/>`;
+    } 
   }
 
 
@@ -137,8 +188,6 @@
         for (let character of response.data) {
           document.body.innerHTML += `<a href='#campaign/campaign_id/${campaign.campaign_id}'>${campaign.name}</a><br/>`;
         } 
-
-          document.body.innerHTML += `<a href='#campaign/campaign_id/${campaign.campaign_id}'>${campaign.name}</a><b+r/><`;
       } else {
         document.body.innerHTML = `There was an error :-(<br/>${campaignReponse.message || characterResponse.message}`;
       }

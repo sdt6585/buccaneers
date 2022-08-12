@@ -86,7 +86,10 @@ app.use(express.static('client'))
 
 /******************************************* User Login*/
 app.post('/api/login', passport.authenticate('local', { failureMessage: true }), function(req, res) {
-  res.send(req.session.passport.user);
+  res.send({
+    success: true,
+    data: req.session.passport.user
+  });
 });
 
 /******************************************* Campaigns */
@@ -103,7 +106,7 @@ async function getCampaigns (req, res) {
       FROM campaign 
         INNER JOIN user_campaign ON (user_campaign_id)
         INNER JOIN user USING (user_id)
-      WHERE campaign.campaign_id = ${connection.escape(req.params.user_id || req.session.passport.user.user_id)}
+      WHERE user.user_id = ${connection.escape(req.params.user_id || req.session.passport.user.user_id)}
     `);
     
     res.send({
