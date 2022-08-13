@@ -263,7 +263,7 @@
     let unmask = mask(target).unmask;
 
     //Show the module
-    controller.target = await controller.show({app, target, params, unmask});
+    controller.target = await controller.show({app, target, params, unmask, routeName});
   }
 
   /********************************************************************************* Magic Link Login */

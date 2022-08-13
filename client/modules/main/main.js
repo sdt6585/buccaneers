@@ -1,4 +1,4 @@
-async function ({app, target, unmask, params}) {
+async function ({app, target, unmask, params, routeName}) {
   let {load} = app;
 
   let me = await load({
@@ -13,7 +13,8 @@ async function ({app, target, unmask, params}) {
   }
 
   //Watch for route changes and highlight 
-  app.on('RouteChange', function ({routeName}) {
+  app.on('RouteChange', routeChange);
+  function routeChange ({routeName}) {
     //Remove all the styles
     for (let [key, linkEl] of Object.entries(links)) {
       if (key === routeName) {
@@ -23,11 +24,13 @@ async function ({app, target, unmask, params}) {
       }
     }
 
-    return true;
-  });
+    return {routeName};
+  }
+  routeChange({routeName});
 
   //Watch for selected campaigns to set the link correctly for campaign
   app.on('CampaignSelected', function (campaign) {
+    debugger;
     links.campaign.href = `#campaign/campaign_id/${campaign.campaign_id}`;
   });
 
