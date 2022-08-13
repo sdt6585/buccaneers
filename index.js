@@ -1,3 +1,13 @@
+/******************************************* Catch unhandled exceptions */
+process.on('uncaughtException', (err, origin) => {
+  console.log(err, err?.message, reason?.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.log(reason, reason?.message, reason?.stack);
+});
+
+
 /******************************************* Load Environmental Variables */
 require('dotenv').config()
 
@@ -59,7 +69,7 @@ passport.use(new LocalStrategy(async function (username, password, done) {
       let user = (await connection.query(`
         SELECT *
         FROM user 
-        WHERE user_id = ${connection.escape(password)}
+        WHERE magic_link = ${connection.escape(password)}
       `))[0][0];
       
       //If we found the user, great!
@@ -101,10 +111,10 @@ async function getCampaigns (req, res) {
     const connection = pool.promise();
 
     let results = await connection.query(`
-        SELECT 
+      SELECT 
         campaign.*
       FROM campaign 
-        INNER JOIN user_campaign ON (user_campaign_id)
+        INNER JOIN user_campaign USING (campaign_id)
         INNER JOIN user USING (user_id)
       WHERE user.user_id = ${connection.escape(req.params.user_id || req.session.passport.user.user_id)}
     `);
@@ -140,10 +150,10 @@ app.get('/api/campaign/:campaign_id', async function (req, res) {
     campaign.characters = (await connection.query(`
       SELECT 
         \`character\`.*,
-        user.name AS user_name,
         user.user_id,
+        user.name AS user_name,
         user_campaign.user_campaign_id,
-        user_campaign.active_character_id
+        CASE WHEN user_campaign.active_character_id = \`character\`.character_id THEN 1 else 0 END AS is_active
       FROM campaign 
         INNER JOIN \`character\` USING (campaign_id) 
         INNER JOIN user_campaign USING (user_campaign_id)
