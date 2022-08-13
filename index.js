@@ -174,6 +174,62 @@ app.get('/api/campaign/:campaign_id', async function (req, res) {
   }
 });
 
+/******************************************* Character Detail */
+app.get('/api/character/:character_id', async function (req, res) {
+
+  try { 
+    const connection = pool.promise();
+    
+    let character = (await connection.query(`
+      SELECT 
+        *
+      FROM \`character\` 
+      WHERE character_id = ${connection.escape(req.params.character_id)}
+    `))[0][0];
+
+    character.stats = (await connection.query(`
+      SELECT 
+        character_stat.value,
+        stat.*
+      FROM \`character\` 
+        INNER JOIN character_stat USING (character_id) 
+        INNER JOIN stat USING (stat_id)
+      WHERE \`character\`.character_id = ${connection.escape(req.params.character_id)}
+    `))[0];
+
+    character.skills = (await connection.query(`
+      SELECT 
+        character_skill.value,
+        skill.*
+      FROM \`character\` 
+        INNER JOIN character_skill USING (character_id) 
+        INNER JOIN skill USING (skill_id)
+      WHERE \`character\`.character_id = ${connection.escape(req.params.character_id)}
+    `))[0];
+
+    // character.inventory = (await connection.query(`
+    //   SELECT 
+    //     character_skill.value,
+    //     inventory.*
+    //   FROM \`character\` 
+    //     INNER JOIN character_inventory USING (character_id) 
+    //     INNER JOIN inventory USING (inventory_id)
+    //   WHERE \`character\`.character_id = ${connection.escape(req.params.character_id)}
+    // `))[0];
+    
+    res.send({
+      success: true,
+      data: character
+    });
+
+  } catch (e) {
+    res.send({
+      success: false,
+      message: e.message 
+    });
+  }
+});
+
 /******************************************* User */
 app.get('/api/user/:user_id', getUser);
 app.get('/api/user', getUser); //returns the currently logged in user
